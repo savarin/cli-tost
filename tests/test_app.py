@@ -26,6 +26,8 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh login " + auth_token
         exit_code, msg = commands.getstatusoutput(cmd)
 
+        return auth_token
+
     def test_signup(self):
         cmd = "./job.sh signup " + self.email_0
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -62,7 +64,7 @@ class TestCase(unittest.TestCase):
         self.assertIn("too few command line arguments!", msg)
 
     def test_create(self):
-        self.sign_up(self.email_0)
+        self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -75,7 +77,7 @@ class TestCase(unittest.TestCase):
         self.assertIn("too few command line arguments!", msg)
 
     def test_list(self):
-        self.sign_up(self.email_0)
+        self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -86,7 +88,7 @@ class TestCase(unittest.TestCase):
         self.assertIn("foo", msg)
 
     def test_view(self):
-        self.sign_up(self.email_0)
+        self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -107,7 +109,7 @@ class TestCase(unittest.TestCase):
         self.assertIn("too few command line arguments!", msg)
 
     def test_edit(self):
-        self.sign_up(self.email_0)
+        self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -126,3 +128,23 @@ class TestCase(unittest.TestCase):
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code >> 8, 1)
         self.assertIn("too few command line arguments!", msg)
+
+    def test_access(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
+
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        access_token = msg.split(" ")[-1]
+
+        self.auth_token_1 = self.sign_up(self.email_1)
+
+        cmd = "./job.sh view " + access_token
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh access " + access_token
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn(self.email_1, msg)
