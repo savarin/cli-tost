@@ -157,5 +157,32 @@ class TestCase(unittest.TestCase):
         self.assertEqual(exit_code >> 8, 1)
         self.assertIn("access token is not ancestor to source!", msg)
 
+    def test_disable(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
+
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
+
+        self.auth_token_1 = self.sign_up(self.email_1)
+
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_1 = msg.split(": ")[0]
+
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("successful access token disable", msg)
+
+
+        cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("source is not descendant to access token!", msg)
+
     def tearDown(self):
         requests.get("http://127.0.0.1:5000/reset")
