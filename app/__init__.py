@@ -72,7 +72,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "edit":
-        pass
+        if len(args) < 2:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 2:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "access":
         pass
     elif cmd == "upgrade":
@@ -120,12 +125,23 @@ def resolve_argv(cmd, args):
         if not auth:
             exit_with_stderr("invalid credentials!")
 
+        # TO DO: resolve to get full access token
         ppgn_token = args[0]
+        body = {"body": urllib.unquote(args[0])}
 
         return {"auth": auth, "ppgn_token": ppgn_token}
 
     elif cmd == "edit":
-        pass
+        auth = get_auth()
+        
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        ppgn_token = args[0]
+        body = {"body": urllib.unquote(args[1])}
+
+        return {"auth": auth, "ppgn_token": ppgn_token, "body": body}
+
     elif cmd == "access":
         pass
     elif cmd == "upgrade":
@@ -196,6 +212,18 @@ def request_view(args):
     # TO DO: test redirects
     exit_with_stdout(result["tost"]["body"])
 
+def request_edit(args):
+    result = requests.put(url + "/tost/" + args["ppgn_token"], auth=args["auth"], data=args["body"])
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 404:
+        exit_with_stdout("tost not found!")
+
+    if status_code == 302:
+        exit_with_stdout("please use refreshed access token " + result["access-token"])
+
+    exit_with_stdout("successful tost edit")
+
 def send_request(cmd, args):
     if cmd == "signup":
         request_signup(args)
@@ -208,7 +236,7 @@ def send_request(cmd, args):
     elif cmd == "view":
         request_view(args)
     elif cmd == "edit":
-        pass
+        request_edit(args)
     elif cmd == "access":
         pass
     elif cmd == "upgrade":
