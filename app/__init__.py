@@ -200,7 +200,7 @@ def request_signup(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
-        exit_with_stdout("email already exists!")
+        exit_with_stderr("email already exists!")
 
     email = response["user"]["email"]
     auth_token = response["user"]["id"]
@@ -215,7 +215,7 @@ def request_login(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
-        exit_with_stdout("id incorrect!")
+        exit_with_stderr("id incorrect!")
 
     email = response["user"]["email"]
     auth_token = response["user"]["id"]
@@ -252,7 +252,7 @@ def request_create(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
-        exit_with_stdout("body must not be blank!")
+        exit_with_stderr("body must not be blank!")
 
     exit_with_stdout("tost created with token {}"
                      .format(response["tost"]["access-token"]))
@@ -264,7 +264,7 @@ def request_view(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 404:
-        exit_with_stdout("tost not found!")
+        exit_with_stderr("tost not found!")
 
     # TO DO: test redirects
     exit_with_stdout(response["tost"]["body"])
@@ -276,10 +276,10 @@ def request_edit(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 404:
-        exit_with_stdout("tost not found!")
+        exit_with_stderr("tost not found!")
 
     if status_code == 302:
-        exit_with_stdout("please use refreshed access token {}"
+        exit_with_stderr("please use refreshed access token {}"
                          .format(response["access-token"]))
 
     exit_with_stdout("successful tost edit")
@@ -301,7 +301,7 @@ def request_upgrade(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
-        exit_with_stdout("access token is not ancestor to source!")
+        exit_with_stderr("access token is not ancestor to source!")
 
     exit_with_stdout("successful access token upgrade")
 
@@ -312,7 +312,7 @@ def request_disable(args):
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
-        exit_with_stdout("source is not descendant to access token!")
+        exit_with_stderr("source is not descendant to access token!")
 
     exit_with_stdout("successful access token disable")
 

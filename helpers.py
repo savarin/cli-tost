@@ -5,7 +5,7 @@ import sys
 
 
 def exit_with_stdout(comments):
-    sys.stderr.write(comments + "\n")
+    sys.stdout.write(comments + "\n")
     sys.exit(0)
 
 def exit_with_stderr(comments):
