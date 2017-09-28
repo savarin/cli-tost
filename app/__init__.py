@@ -27,7 +27,7 @@ import sys
 import urllib
 
 from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
-                    validate_auth_token, write_to_file, get_auth
+                    validate_auth_token, write_to_file
 
 
 domain = "http://localhost:5000"
@@ -62,6 +62,24 @@ def validate_argv(cmd, args):
     sys.exit(1)
 
 
+def get_auth():
+    email = os.getenv("EMAIL")
+    auth_token = os.getenv("AUTH_TOKEN")
+
+    if not (validate_email(email) and 
+            validate_auth_token(auth_token)):
+        exit_with_stderr("invalid credentials!")
+
+    return {"auth": requests.auth.HTTPBasicAuth(email, auth_token)}
+
+
+def add_content(auth, auth_token="", data={}):
+    auth["auth_token"] = auth_token
+    auth["data"] = data
+
+    return auth
+
+
 def resolve_argv(cmd, args):
     if cmd == "signup":
         if not validate_email(args[0]):
@@ -76,78 +94,34 @@ def resolve_argv(cmd, args):
         return {"auth_token": args[0]}
 
     elif cmd == "list":
-        auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
-        return {"auth": auth}
+        return get_auth()
 
     elif cmd == "create":
         auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
         data = {"body": urllib.unquote(args[0])}
 
-        return {"auth": auth, "data": data}
+        return add_content(auth, data=data)
 
-    elif cmd == "view":
-        auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
-        # TO DO: resolve to get full access token
+    elif cmd in set(["view", "access"]):
+        # TO DO: resolve to get full access token for view
+        auth = get_auth()        
         access_token = args[0]
 
-        return {"auth": auth, "access_token": access_token}
+        return add_content(auth, access_token=access_token)
 
     elif cmd == "edit":
         auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
         access_token = args[0]
         data = {"body": urllib.unquote(args[1])}
 
-        return {"auth": auth, "access_token": access_token, "data": data}
+        return add_content(auth, access_token=access_token, data=data)
 
-    elif cmd == "access":
-        auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
+    elif cmd in set(["upgrade", "disable"]):
+        result = get_auth()
         access_token = args[0]
+        data = {"src-access-token": args[1]}
 
-        return {"auth": auth, "access_token": access_token}
-
-    elif cmd == "upgrade":
-        auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
-        access_token = args[0]
-        src_access_token = args[1]
-        data = {"src-access-token": src_access_token}
-
-        return {"auth": auth, "access_token": access_token, "data": data}
-
-    elif cmd == "disable":
-        auth = get_auth()
-
-        if not auth:
-            exit_with_stderr("invalid credentials!")
-
-        access_token = args[0]
-        src_access_token = args[1]
-        data = {"src-access-token": src_access_token}
-
-        return {"auth": auth, "access_token": access_token, "data": data}
+        return add_content(auth, access_token=access_token, data=data)
 
 
 def request_signup(args):
