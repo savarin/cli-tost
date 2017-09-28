@@ -24,6 +24,7 @@ import json
 import os
 import requests
 import sys
+import urllib
 
 from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
                     validate_auth_token, write_to_file, get_auth
@@ -57,7 +58,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "create":
-        pass
+        if len(args) < 1:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 1:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "view":
         pass
     elif cmd == "edit":
@@ -76,11 +82,13 @@ def resolve_argv(cmd, args):
     if cmd == "signup":
         if not validate_email(args[0]):
             exit_with_stderr("invalid e-mail!")
+
         return {"email": args[0]}
 
     elif cmd == "login":
         if not validate_auth_token(args[0]):
             exit_with_stderr("invalid auth token!")
+
         return {"auth_token": args[0]}
 
     elif cmd == "list":
@@ -88,10 +96,19 @@ def resolve_argv(cmd, args):
 
         if not auth:
             exit_with_stderr("invalid credentials!")
+
         return {"auth": auth}
 
     elif cmd == "create":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        body = {"body": urllib.unquote(args[0])}
+
+        return {"auth": auth, "body": body}
+
     elif cmd == "view":
         pass
     elif cmd == "edit":
@@ -108,7 +125,7 @@ def request_signup(args):
     status_code, result = result.status_code, result.json()
 
     if status_code == 400:
-        exit_with_stdout(result["msg"])
+        exit_with_stdout("email already exists!")
 
     email = result["user"]["email"]
     auth_token = result["user"]["id"]
@@ -120,7 +137,7 @@ def request_login(args):
     status_code, result = result.status_code, result.json()
 
     if status_code == 400:
-        exit_with_stdout(result["msg"])
+        exit_with_stdout("id incorrect!")
 
     email = result["user"]["email"]
     auth_token = result["user"]["id"]
@@ -135,16 +152,27 @@ def request_login(args):
 
 def request_list(args):
     result = requests.get(url + "/tost", auth=args["auth"])
+    status_code, result = result.status_code, result.json()
 
     data = {}
-    for k, v in result.json().iteritems():
+    for k, v in result.iteritems():
         data[str(k)] = str(v)
 
     write_to_file(".temp", data)
 
     for k, v in data.iteritems():
-        sys.stdout.write(k + ": " + v + "\n")
+        sys.stdout.write(k[:4] + ": " + v + "\n")
     sys.exit(0)
+
+def request_create(args):
+    result = requests.post(url + "/tost", auth=args["auth"], data=args["body"])
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 400:
+        exit_with_stdout("body must not be blank!")
+
+    exit_with_stdout("tost created with token {}".format(result["tost"]["access-token"]))
+
 
 def send_request(cmd, args):
     if cmd == "signup":
@@ -154,7 +182,7 @@ def send_request(cmd, args):
     elif cmd == "list":
         request_list(args)
     elif cmd == "create":
-        pass
+        request_create(args)
     elif cmd == "view":
         pass
     elif cmd == "edit":
