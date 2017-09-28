@@ -93,7 +93,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "disable":
-        pass
+        if len(args) < 2:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 2:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     else:
         sys.stdout.write("invalid command\n")
         sys.exit(1)
@@ -174,7 +179,16 @@ def resolve_argv(cmd, args):
         return {"auth": auth, "access_token": access_token, "data": data}
 
     elif cmd == "disable":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        access_token = args[0]
+        src_access_token = args[1]
+        data = {"src-access-token": src_access_token}        
+
+        return {"auth": auth, "access_token": access_token, "data": data}
 
 def request_signup(args):
     result = requests.post(url + "/signup", data=args)
@@ -268,6 +282,15 @@ def request_upgrade(args):
 
     exit_with_stdout("successful access token upgrade")
 
+def request_disable(args):
+    result = requests.post(url + "/tost/" + args["access_token"] + "/propagation/disable", auth=args["auth"], data=args["data"])
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 400:
+        exit_with_stdout("source is not descendant to access token!")
+
+    exit_with_stdout("successful access token disable")
+
 def send_request(cmd, args):
     if cmd == "signup":
         request_signup(args)
@@ -286,4 +309,4 @@ def send_request(cmd, args):
     elif cmd == "upgrade":
         request_upgrade(args)
     elif cmd == "disable":
-        pass
+        request_disable(args)
