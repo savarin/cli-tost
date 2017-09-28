@@ -80,11 +80,59 @@ class TestCase(unittest.TestCase):
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
 
+        # case 3: user is creator of tost that propagation points to
         cmd = "./job.sh view " + msg.split(" ")[-1]
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("foo", msg)
+
+        # case 2: user visits resource for the first time
+        self.auth_token_1 = self.sign_up(self.email_1)
+
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_1 = msg.split(": ")[0]
+
+        cmd = "./job.sh view " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("foo", msg)
+
+        # case 4: user propagation is of lower priority than propagation in url
+        self.auth_token_2 = self.sign_up(self.email_2)
+
+        cmd = "./job.sh view " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_2 = msg.split(": ")[0]
+
+        cmd = "./job.sh view " + ppgn_token_2
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("foo", msg)
+
+        # case 5: user propagation is of higher priority than propagation in url
+        self.auth_token_3 = self.sign_up(self.email_3)
+
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh view " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_3 = msg.split(": ")[0]
+
+        cmd = "./job.sh view " + ppgn_token_3
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("foo", msg)
+
+        # case 1: propagation invalid
+        cmd = "./job.sh login " + self.auth_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
 
         cmd = "./job.sh view " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -177,7 +225,6 @@ class TestCase(unittest.TestCase):
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("successful access token disable", msg)
-
 
         cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
         exit_code, msg = commands.getstatusoutput(cmd)
