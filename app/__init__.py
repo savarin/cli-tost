@@ -38,72 +38,28 @@ def parse_argv():
     return cmd, args
 
 
+def check_args_length(args, length):
+    print "foo", args, length
+    if len(args) < length:
+        exit_with_stderr("too few command line arguments!")
+    if len(args) > length:
+        exit_with_stderr("too many command line arguments!")
+    return args
+
+
 def validate_argv(cmd, args):
     # TO DO: incorporate config and env
-    if cmd == "signup":
-        if len(args) < 1:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 1:
-            exit_with_stderr("too many command line arguments!")
-        return args
+    if cmd == "list":
+        return check_args_length(args, 0)
 
-    elif cmd == "login":
-        if len(args) < 1:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 1:
-            exit_with_stderr("too many command line arguments!")
-        return args
+    elif cmd in set(["signup", "login", "create", "view", "access"]):
+        return check_args_length(args, 1)
 
-    elif cmd == "list":
-        if len(args) > 0:
-            exit_with_stderr("too many command line arguments!")
-        return args
+    elif cmd in set(["edit", "upgrade", "disable"]):
+        return check_args_length(args, 2)
 
-    elif cmd == "create":
-        if len(args) < 1:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 1:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    elif cmd == "view":
-        if len(args) < 1:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 1:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    elif cmd == "edit":
-        if len(args) < 2:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 2:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    elif cmd == "access":
-        if len(args) < 1:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 1:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    elif cmd == "upgrade":
-        if len(args) < 2:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 2:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    elif cmd == "disable":
-        if len(args) < 2:
-            exit_with_stderr("too few command line arguments!")
-        elif len(args) > 2:
-            exit_with_stderr("too many command line arguments!")
-        return args
-
-    else:
-        sys.stdout.write("invalid command\n")
-        sys.exit(1)
+    sys.stdout.write("invalid command\n")
+    sys.exit(1)
 
 
 def resolve_argv(cmd, args):
