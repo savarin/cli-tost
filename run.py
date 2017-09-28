@@ -1,5 +1,5 @@
 from app import parse_argv, validate_argv, resolve_argv, send_request
-    
+
 
 if __name__ == "__main__":
     cmd, args = parse_argv()

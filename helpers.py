@@ -1,3 +1,4 @@
+import re
 import sys
 
 
@@ -15,3 +16,13 @@ def validate_email(email):
         return False
     return True
 
+def validate_auth_token(auth_token):
+    if not (len(auth_token) == 8 and
+            re.match("^[a-z0-9]*$", auth_token)):
+        return False
+    return True
+
+def write_to_env(path, data):
+    with open(path, "w") as f:
+        for k, v in data.iteritems():
+            f.write('export {}="{}"\n'.format(k, v))

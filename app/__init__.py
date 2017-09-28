@@ -20,27 +20,36 @@ commands = signup, login, list, create, view, edit, access, upgrade, disable
 '''
 
 import json
+import os
 import requests
 import sys
 
-from helpers import exit_with_stderr, exit_with_stdout, validate_email
+from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
+                    validate_auth_token, write_to_env
 
 
-localhost = "http://localhost:5000"
+url = "http://localhost:5000"
 
 def parse_argv():
     cmd, args = sys.argv[1], sys.argv[2:]
     return cmd, args
 
 def validate_argv(cmd, args):
+    # TO DO: incorporate config and env
     if cmd == "signup":
         if len(args) < 1:
-            exit_with_stderr("No e-mail provided!")
-        elif len(args) != 1:
-            exit_with_stderr("Too many command line arguments!")
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 1:
+            exit_with_stderr("too many command line arguments!")
         return args
+
     elif cmd == "login":
-        pass
+        if len(args) < 1:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 1:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "list":
         pass
     elif cmd == "create":
@@ -56,17 +65,20 @@ def validate_argv(cmd, args):
     elif cmd == "disable":
         pass
     else:
-        sys.stdout.write("Invalid command\n")
+        sys.stdout.write("invalid command\n")
         sys.exit(1)
 
 def resolve_argv(cmd, args):
     if cmd == "signup":
         if not validate_email(args[0]):
-            exit_with_stderr("Invalid e-mail!")
+            exit_with_stderr("invalid e-mail!")
         return {"email": args[0]}
 
     elif cmd == "login":
-        pass
+        if not validate_auth_token(args[0]):
+            exit_with_stderr("invalid auth token!")
+        return {"auth_token": args[0]}
+
     elif cmd == "list":
         pass
     elif cmd == "create":
@@ -83,21 +95,39 @@ def resolve_argv(cmd, args):
         pass
 
 def request_signup(args):
-    result = requests.post(localhost + "/signup", data=args)\
-                     .json()
+    result = requests.post(url + "/signup", data=args)
+    status_code, result = result.status_code, result.json()
 
-    if result.get("msg"):
+    if status_code == 400:
         exit_with_stdout(result["msg"])
 
     email = result["user"]["email"]
     auth_token = result["user"]["id"]
+
     exit_with_stdout("successful signup for {} with id {}".format(email, auth_token))
+
+def request_login(args):
+    result = requests.post(url + "/login", data=args)
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 400:
+        exit_with_stdout(result["msg"])
+
+    email = result["user"]["email"]
+    auth_token = result["user"]["id"]
+    data = {
+        "EMAIL": result["user"]["email"],
+        "AUTH_TOKEN": result["user"]["id"]
+    }
+
+    write_to_env(".env", data)
+    exit_with_stdout("successful login for {} with id {}".format(email, auth_token))
 
 def send_request(cmd, args):
     if cmd == "signup":
         request_signup(args)
     elif cmd == "login":
-        pass
+        request_login(args)
     elif cmd == "list":
         pass
     elif cmd == "create":
