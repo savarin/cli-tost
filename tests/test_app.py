@@ -16,8 +16,6 @@ class TestCase(unittest.TestCase):
         self.auth_token_2 = ""
         self.auth_token_3 = ""
 
-        requests.get("http://127.0.0.1:5000/reset")
-
     def sign_up(self, email):
         cmd = "./job.sh signup " + email
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -53,16 +51,6 @@ class TestCase(unittest.TestCase):
         self.assertEqual(exit_code >> 8, 1)
         self.assertIn("id incorrect!", msg)
 
-        cmd = "./job.sh login " + "foo"
-        exit_code, msg = commands.getstatusoutput(cmd)
-        self.assertEqual(exit_code >> 8, 1)
-        self.assertIn("invalid auth token!", msg)
-
-        cmd = "./job.sh login " + ""
-        exit_code, msg = commands.getstatusoutput(cmd)
-        self.assertEqual(exit_code >> 8, 1)
-        self.assertIn("too few command line arguments!", msg)
-
     def test_create(self):
         self.auth_token_0 = self.sign_up(self.email_0)
 
@@ -70,7 +58,7 @@ class TestCase(unittest.TestCase):
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("tost created with token", msg)
-        
+
         cmd = "./job.sh create " + ""
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code >> 8, 1)
@@ -81,7 +69,7 @@ class TestCase(unittest.TestCase):
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
-        
+
         cmd = "./job.sh list"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
@@ -92,7 +80,7 @@ class TestCase(unittest.TestCase):
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
-        
+
         cmd = "./job.sh view " + msg.split(" ")[-1]
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
@@ -103,48 +91,71 @@ class TestCase(unittest.TestCase):
         self.assertEqual(exit_code >> 8, 1)
         self.assertIn("tost not found!", msg)
 
-        cmd = "./job.sh view " + ""
-        exit_code, msg = commands.getstatusoutput(cmd)
-        self.assertEqual(exit_code >> 8, 1)
-        self.assertIn("too few command line arguments!", msg)
-
     def test_edit(self):
         self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
-        
+
         cmd = "./job.sh edit " + msg.split(" ")[-1] + " " + "bar"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("successful tost edit", msg)
-
-        cmd = "./job.sh edit " + "foo" + " " + "bar"
-        exit_code, msg = commands.getstatusoutput(cmd)
-        self.assertEqual(exit_code >> 8, 1)
-        self.assertIn("tost not found!", msg)
-
-        cmd = "./job.sh edit " + msg.split(" ")[-1] + " " + ""
-        exit_code, msg = commands.getstatusoutput(cmd)
-        self.assertEqual(exit_code >> 8, 1)
-        self.assertIn("too few command line arguments!", msg)
 
     def test_access(self):
         self.auth_token_0 = self.sign_up(self.email_0)
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
-        access_token = msg.split(" ")[-1]
+        ppgn_token_0 = msg.split(" ")[-1]
 
         self.auth_token_1 = self.sign_up(self.email_1)
 
-        cmd = "./job.sh view " + access_token
+        cmd = "./job.sh view " + ppgn_token_0
         exit_code, msg = commands.getstatusoutput(cmd)
 
         cmd = "./job.sh login " + self.auth_token_0
         exit_code, msg = commands.getstatusoutput(cmd)
 
-        cmd = "./job.sh access " + access_token
+        cmd = "./job.sh access " + ppgn_token_0
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn(self.email_1, msg)
+
+    def test_upgrade(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
+
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
+
+        self.auth_token_1 = self.sign_up(self.email_1)
+
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_1 = msg.split(": ")[0]
+
+        self.auth_token_2 = self.sign_up(self.email_2)
+
+        cmd = "./job.sh view " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_2 = msg.split(": ")[0]
+
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh upgrade " + ppgn_token_0 + " " + ppgn_token_2
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("successful access token upgrade", msg)
+
+        cmd = "./job.sh login " + self.auth_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+
+        cmd = "./job.sh upgrade " + ppgn_token_1 + " " + ppgn_token_2
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("access token is not ancestor to source!", msg)
+
+    def tearDown(self):
+        requests.get("http://127.0.0.1:5000/reset")

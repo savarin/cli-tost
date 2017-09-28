@@ -72,8 +72,8 @@ def get_auth():
     return {"auth": requests.auth.HTTPBasicAuth(email, auth_token)}
 
 
-def add_content(auth, access_token="", data={}):
-    auth["access_token"] = access_token
+def add_content(auth, ppgn_token="", data={}):
+    auth["ppgn_token"] = ppgn_token
     auth["data"] = data
 
     return auth
@@ -104,23 +104,23 @@ def resolve_argv(cmd, args):
     elif cmd in set(["view", "access"]):
         # TO DO: resolve to get full access token for view
         auth = get_auth()
-        access_token = args[0]
+        ppgn_token = args[0]
 
-        return add_content(auth, access_token=access_token)
+        return add_content(auth, ppgn_token=ppgn_token)
 
     elif cmd == "edit":
         auth = get_auth()
-        access_token = args[0]
+        ppgn_token = args[0]
         data = {"body": urllib.unquote(args[1])}
 
-        return add_content(auth, access_token=access_token, data=data)
+        return add_content(auth, ppgn_token=ppgn_token, data=data)
 
     elif cmd in set(["upgrade", "disable"]):
-        result = get_auth()
-        access_token = args[0]
+        auth = get_auth()
+        ppgn_token = args[0]
         data = {"src-access-token": args[1]}
 
-        return add_content(auth, access_token=access_token, data=data)
+        return add_content(auth, ppgn_token=ppgn_token, data=data)
 
 
 def request_signup(args):
@@ -188,7 +188,7 @@ def request_create(args):
 
 
 def request_view(args):
-    url = domain + "/tost/" + args["access_token"]
+    url = domain + "/tost/" + args["ppgn_token"]
     response = requests.get(url, auth=args["auth"])
     status_code, response = response.status_code, response.json()
 
@@ -196,11 +196,12 @@ def request_view(args):
         exit_with_stderr("tost not found!")
 
     # TO DO: test redirects
-    exit_with_stdout(response["tost"]["body"])
+    exit_with_stdout(response["tost"]["access-token"] + ": " + 
+                     response["tost"]["body"])
 
 
 def request_edit(args):
-    url = domain + "/tost/" + args["access_token"]
+    url = domain + "/tost/" + args["ppgn_token"]
     response = requests.put(url, auth=args["auth"], data=args["data"])
     status_code, response = response.status_code, response.json()
 
@@ -215,7 +216,7 @@ def request_edit(args):
 
 
 def request_access(args):
-    url = domain + "/tost/" + args["access_token"] + "/propagation"
+    url = domain + "/tost/" + args["ppgn_token"] + "/propagation"
     response = requests.get(url, auth=args["auth"])
     status_code, response = response.status_code, response.json()
 
@@ -225,7 +226,7 @@ def request_access(args):
 
 
 def request_upgrade(args):
-    url = domain + "/tost/" + args["access_token"] + "/propagation/upgrade"
+    url = domain + "/tost/" + args["ppgn_token"] + "/propagation/upgrade"
     response = requests.post(url, auth=args["auth"], data=args["data"])
     status_code, response = response.status_code, response.json()
 
@@ -236,7 +237,7 @@ def request_upgrade(args):
 
 
 def request_disable(args):
-    url = domain + "/tost/" + args["access_token"] + "/propagation/disable"
+    url = domain + "/tost/" + args["ppgn_token"] + "/propagation/disable"
     response = requests.post(url, auth=args["auth"], data=args["data"])
     status_code, response = response.status_code, response.json()
 
@@ -249,19 +250,27 @@ def request_disable(args):
 def send_request(cmd, args):
     if cmd == "signup":
         request_signup(args)
+
     elif cmd == "login":
         request_login(args)
+
     elif cmd == "list":
         request_list(args)
+
     elif cmd == "create":
         request_create(args)
+
     elif cmd == "view":
         request_view(args)
+
     elif cmd == "edit":
         request_edit(args)
+
     elif cmd == "access":
         request_access(args)
+
     elif cmd == "upgrade":
         request_upgrade(args)
+
     elif cmd == "disable":
         request_disable(args)
