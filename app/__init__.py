@@ -12,10 +12,10 @@ commands = signup, login, list, create, view, edit, access, upgrade, disable
  3. resolve to "real" values
     - i.e. from abbreviation into full token
     - e.g. {"cmd": "access_move",
-            "from_token": "abc123..." 
+            "from_token": "abc123..."
  4. make network call
- 5. conform + validate result
- 6. format result for output
+ 5. conform + validate response
+ 6. format response for output
     + exit non-zero if have error
 '''
 
@@ -30,11 +30,13 @@ from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
                     validate_auth_token, write_to_file, get_auth
 
 
-url = "http://localhost:5000"
+domain = "http://localhost:5000"
+
 
 def parse_argv():
     cmd, args = sys.argv[1], sys.argv[2:]
     return cmd, args
+
 
 def validate_argv(cmd, args):
     # TO DO: incorporate config and env
@@ -103,6 +105,7 @@ def validate_argv(cmd, args):
         sys.stdout.write("invalid command\n")
         sys.exit(1)
 
+
 def resolve_argv(cmd, args):
     if cmd == "signup":
         if not validate_email(args[0]):
@@ -147,7 +150,7 @@ def resolve_argv(cmd, args):
 
     elif cmd == "edit":
         auth = get_auth()
-        
+
         if not auth:
             exit_with_stderr("invalid credentials!")
 
@@ -174,7 +177,7 @@ def resolve_argv(cmd, args):
 
         access_token = args[0]
         src_access_token = args[1]
-        data = {"src-access-token": src_access_token}        
+        data = {"src-access-token": src_access_token}
 
         return {"auth": auth, "access_token": access_token, "data": data}
 
@@ -186,31 +189,36 @@ def resolve_argv(cmd, args):
 
         access_token = args[0]
         src_access_token = args[1]
-        data = {"src-access-token": src_access_token}        
+        data = {"src-access-token": src_access_token}
 
         return {"auth": auth, "access_token": access_token, "data": data}
 
+
 def request_signup(args):
-    result = requests.post(url + "/signup", data=args)
-    status_code, result = result.status_code, result.json()
+    url = domain + "/signup"
+    response = requests.post(url, data=args)
+    status_code, response = response.status_code, response.json()
 
     if status_code == 400:
         exit_with_stdout("email already exists!")
 
-    email = result["user"]["email"]
-    auth_token = result["user"]["id"]
+    email = response["user"]["email"]
+    auth_token = response["user"]["id"]
 
-    exit_with_stdout("successful signup for {} with id {}".format(email, auth_token))
+    exit_with_stdout("successful signup for {} with id {}"
+                     .format(email, auth_token))
+
 
 def request_login(args):
-    result = requests.post(url + "/login", data=args)
-    status_code, result = result.status_code, result.json()
+    url = domain + "/login"
+    response = requests.post(url, data=args)
+    status_code, response = response.status_code, response.json()
 
     if status_code == 400:
         exit_with_stdout("id incorrect!")
 
-    email = result["user"]["email"]
-    auth_token = result["user"]["id"]
+    email = response["user"]["email"]
+    auth_token = response["user"]["id"]
 
     data = {
         "EMAIL": email,
@@ -218,14 +226,17 @@ def request_login(args):
     }
     write_to_file(".env", data, "export ")
 
-    exit_with_stdout("successful login for {} with id {}".format(email, auth_token))
+    exit_with_stdout("successful login for {} with id {}"
+                     .format(email, auth_token))
+
 
 def request_list(args):
-    result = requests.get(url + "/tost", auth=args["auth"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost"
+    response = requests.get(url, auth=args["auth"])
+    status_code, response = response.status_code, response.json()
 
     data = {}
-    for k, v in result.iteritems():
+    for k, v in response.iteritems():
         data[str(k)] = str(v)
 
     write_to_file(".temp", data)
@@ -234,62 +245,77 @@ def request_list(args):
         sys.stdout.write(k[:4] + ": " + v + "\n")
     sys.exit(0)
 
+
 def request_create(args):
-    result = requests.post(url + "/tost", auth=args["auth"], data=args["data"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost"
+    response = requests.post(url, auth=args["auth"], data=args["data"])
+    status_code, response = response.status_code, response.json()
 
     if status_code == 400:
         exit_with_stdout("body must not be blank!")
 
-    exit_with_stdout("tost created with token {}".format(result["tost"]["access-token"]))
+    exit_with_stdout("tost created with token {}"
+                     .format(response["tost"]["access-token"]))
+
 
 def request_view(args):
-    result = requests.get(url + "/tost/" + args["access_token"], auth=args["auth"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost/" + args["access_token"]
+    response = requests.get(url, auth=args["auth"])
+    status_code, response = response.status_code, response.json()
 
     if status_code == 404:
         exit_with_stdout("tost not found!")
 
     # TO DO: test redirects
-    exit_with_stdout(result["tost"]["body"])
+    exit_with_stdout(response["tost"]["body"])
+
 
 def request_edit(args):
-    result = requests.put(url + "/tost/" + args["access_token"], auth=args["auth"], data=args["data"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost/" + args["access_token"]
+    response = requests.put(url, auth=args["auth"], data=args["data"])
+    status_code, response = response.status_code, response.json()
 
     if status_code == 404:
         exit_with_stdout("tost not found!")
 
     if status_code == 302:
-        exit_with_stdout("please use refreshed access token " + result["access-token"])
+        exit_with_stdout("please use refreshed access token {}"
+                         .format(response["access-token"]))
 
     exit_with_stdout("successful tost edit")
 
-def request_access(args):
-    result = requests.get(url + "/tost/" + args["access_token"] + "/propagation", auth=args["auth"])
-    status_code, result = result.status_code, result.json()
 
-    for k, v in result["propagations"].iteritems():
+def request_access(args):
+    url = domain + "/tost/" + args["access_token"] + "/propagation"
+    response = requests.get(url, auth=args["auth"])
+    status_code, response = response.status_code, response.json()
+
+    for k, v in response["propagations"].iteritems():
         sys.stdout.write(str(k) + ": " + str(v["access-token"]) + "\n")
     sys.exit(0)
 
+
 def request_upgrade(args):
-    result = requests.post(url + "/tost/" + args["access_token"] + "/propagation/upgrade", auth=args["auth"], data=args["data"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost/" + args["access_token"] + "/propagation/upgrade"
+    response = requests.post(url, auth=args["auth"], data=args["data"])
+    status_code, response = response.status_code, response.json()
 
     if status_code == 400:
         exit_with_stdout("access token is not ancestor to source!")
 
     exit_with_stdout("successful access token upgrade")
 
+
 def request_disable(args):
-    result = requests.post(url + "/tost/" + args["access_token"] + "/propagation/disable", auth=args["auth"], data=args["data"])
-    status_code, result = result.status_code, result.json()
+    url = domain + "/tost/" + args["access_token"] + "/propagation/disable"
+    response = requests.post(url, auth=args["auth"], data=args["data"])
+    status_code, response = response.status_code, response.json()
 
     if status_code == 400:
         exit_with_stdout("source is not descendant to access token!")
 
     exit_with_stdout("successful access token disable")
+
 
 def send_request(cmd, args):
     if cmd == "signup":
