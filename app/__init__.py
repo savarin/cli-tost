@@ -79,7 +79,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "access":
-        pass
+        if len(args) < 1:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 1:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "upgrade":
         pass
     elif cmd == "disable":
@@ -143,7 +148,16 @@ def resolve_argv(cmd, args):
         return {"auth": auth, "ppgn_token": ppgn_token, "body": body}
 
     elif cmd == "access":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        ppgn_token = args[0]
+        body = {"body": urllib.unquote(args[0])}
+
+        return {"auth": auth, "ppgn_token": ppgn_token}
+
     elif cmd == "upgrade":
         pass
     elif cmd == "disable":
@@ -224,6 +238,14 @@ def request_edit(args):
 
     exit_with_stdout("successful tost edit")
 
+def request_access(args):
+    result = requests.get(url + "/tost/" + args["ppgn_token"] + "/propagation", auth=args["auth"])
+    status_code, result = result.status_code, result.json()    
+
+    for k, v in result["propagations"].iteritems():
+        sys.stdout.write(str(k) + ": " + str(v["access-token"]) + "\n")
+    sys.exit(0)
+
 def send_request(cmd, args):
     if cmd == "signup":
         request_signup(args)
@@ -238,7 +260,7 @@ def send_request(cmd, args):
     elif cmd == "edit":
         request_edit(args)
     elif cmd == "access":
-        pass
+        request_access(args)
     elif cmd == "upgrade":
         pass
     elif cmd == "disable":
