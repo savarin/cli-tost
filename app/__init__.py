@@ -39,7 +39,6 @@ def parse_argv():
 
 
 def check_args_length(args, length):
-    print "foo", args, length
     if len(args) < length:
         exit_with_stderr("too few command line arguments!")
     if len(args) > length:
@@ -66,15 +65,15 @@ def get_auth():
     email = os.getenv("EMAIL")
     auth_token = os.getenv("AUTH_TOKEN")
 
-    if not (validate_email(email) and 
+    if not (validate_email(email) and
             validate_auth_token(auth_token)):
         exit_with_stderr("invalid credentials!")
 
     return {"auth": requests.auth.HTTPBasicAuth(email, auth_token)}
 
 
-def add_content(auth, auth_token="", data={}):
-    auth["auth_token"] = auth_token
+def add_content(auth, access_token="", data={}):
+    auth["access_token"] = access_token
     auth["data"] = data
 
     return auth
@@ -104,7 +103,7 @@ def resolve_argv(cmd, args):
 
     elif cmd in set(["view", "access"]):
         # TO DO: resolve to get full access token for view
-        auth = get_auth()        
+        auth = get_auth()
         access_token = args[0]
 
         return add_content(auth, access_token=access_token)

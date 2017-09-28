@@ -67,6 +67,7 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
+        self.assertIn("tost created with token", msg)
         
         cmd = "./job.sh create " + ""
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -84,13 +85,44 @@ class TestCase(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("foo", msg)
 
+    def test_view(self):
+        self.sign_up(self.email_0)
 
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        
+        cmd = "./job.sh view " + msg.split(" ")[-1]
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("foo", msg)
 
+        cmd = "./job.sh view " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("tost not found!", msg)
 
+        cmd = "./job.sh view " + ""
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("too few command line arguments!", msg)
 
+    def test_edit(self):
+        self.sign_up(self.email_0)
 
-    #     assert False
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        
+        cmd = "./job.sh edit " + msg.split(" ")[-1] + " " + "bar"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("successful tost edit", msg)
 
-    # def test_user_auth(self):
-    #     self.assertEqual(os.system("./job.sh signup " + self.email_0["email"]), 0)
-    #     self.assertEqual(os.system("./job.sh signup " + self.email_0["email"]), 256)
+        cmd = "./job.sh edit " + "foo" + " " + "bar"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("tost not found!", msg)
+
+        cmd = "./job.sh edit " + msg.split(" ")[-1] + " " + ""
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("too few command line arguments!", msg)
