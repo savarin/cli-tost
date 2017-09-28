@@ -86,7 +86,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "upgrade":
-        pass
+        if len(args) < 2:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 2:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "disable":
         pass
     else:
@@ -120,9 +125,9 @@ def resolve_argv(cmd, args):
         if not auth:
             exit_with_stderr("invalid credentials!")
 
-        body = {"body": urllib.unquote(args[0])}
+        data = {"body": urllib.unquote(args[0])}
 
-        return {"auth": auth, "body": body}
+        return {"auth": auth, "data": data}
 
     elif cmd == "view":
         auth = get_auth()
@@ -131,10 +136,9 @@ def resolve_argv(cmd, args):
             exit_with_stderr("invalid credentials!")
 
         # TO DO: resolve to get full access token
-        ppgn_token = args[0]
-        body = {"body": urllib.unquote(args[0])}
+        access_token = args[0]
 
-        return {"auth": auth, "ppgn_token": ppgn_token}
+        return {"auth": auth, "access_token": access_token}
 
     elif cmd == "edit":
         auth = get_auth()
@@ -142,10 +146,10 @@ def resolve_argv(cmd, args):
         if not auth:
             exit_with_stderr("invalid credentials!")
 
-        ppgn_token = args[0]
-        body = {"body": urllib.unquote(args[1])}
+        access_token = args[0]
+        data = {"body": urllib.unquote(args[1])}
 
-        return {"auth": auth, "ppgn_token": ppgn_token, "body": body}
+        return {"auth": auth, "access_token": access_token, "data": data}
 
     elif cmd == "access":
         auth = get_auth()
@@ -153,13 +157,22 @@ def resolve_argv(cmd, args):
         if not auth:
             exit_with_stderr("invalid credentials!")
 
-        ppgn_token = args[0]
-        body = {"body": urllib.unquote(args[0])}
+        access_token = args[0]
 
-        return {"auth": auth, "ppgn_token": ppgn_token}
+        return {"auth": auth, "access_token": access_token}
 
     elif cmd == "upgrade":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        access_token = args[0]
+        src_access_token = args[1]
+        data = {"src-access-token": src_access_token}        
+
+        return {"auth": auth, "access_token": access_token, "data": data}
+
     elif cmd == "disable":
         pass
 
@@ -208,7 +221,7 @@ def request_list(args):
     sys.exit(0)
 
 def request_create(args):
-    result = requests.post(url + "/tost", auth=args["auth"], data=args["body"])
+    result = requests.post(url + "/tost", auth=args["auth"], data=args["data"])
     status_code, result = result.status_code, result.json()
 
     if status_code == 400:
@@ -217,7 +230,7 @@ def request_create(args):
     exit_with_stdout("tost created with token {}".format(result["tost"]["access-token"]))
 
 def request_view(args):
-    result = requests.get(url + "/tost/" + args["ppgn_token"], auth=args["auth"])
+    result = requests.get(url + "/tost/" + args["access_token"], auth=args["auth"])
     status_code, result = result.status_code, result.json()
 
     if status_code == 404:
@@ -227,7 +240,7 @@ def request_view(args):
     exit_with_stdout(result["tost"]["body"])
 
 def request_edit(args):
-    result = requests.put(url + "/tost/" + args["ppgn_token"], auth=args["auth"], data=args["body"])
+    result = requests.put(url + "/tost/" + args["access_token"], auth=args["auth"], data=args["data"])
     status_code, result = result.status_code, result.json()
 
     if status_code == 404:
@@ -239,12 +252,21 @@ def request_edit(args):
     exit_with_stdout("successful tost edit")
 
 def request_access(args):
-    result = requests.get(url + "/tost/" + args["ppgn_token"] + "/propagation", auth=args["auth"])
-    status_code, result = result.status_code, result.json()    
+    result = requests.get(url + "/tost/" + args["access_token"] + "/propagation", auth=args["auth"])
+    status_code, result = result.status_code, result.json()
 
     for k, v in result["propagations"].iteritems():
         sys.stdout.write(str(k) + ": " + str(v["access-token"]) + "\n")
     sys.exit(0)
+
+def request_upgrade(args):
+    result = requests.post(url + "/tost/" + args["access_token"] + "/propagation/upgrade", auth=args["auth"], data=args["data"])
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 400:
+        exit_with_stdout("access token is not ancestor to source!")
+
+    exit_with_stdout("successful access token upgrade")
 
 def send_request(cmd, args):
     if cmd == "signup":
@@ -262,6 +284,6 @@ def send_request(cmd, args):
     elif cmd == "access":
         request_access(args)
     elif cmd == "upgrade":
-        pass
+        request_upgrade(args)
     elif cmd == "disable":
         pass
