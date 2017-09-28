@@ -19,13 +19,14 @@ commands = signup, login, list, create, view, edit, access, upgrade, disable
     + exit non-zero if have error
 '''
 
+
 import json
 import os
 import requests
 import sys
 
 from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
-                    validate_auth_token, write_to_env
+                    validate_auth_token, write_to_file, get_auth
 
 
 url = "http://localhost:5000"
@@ -51,7 +52,10 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "list":
-        pass
+        if len(args) > 0:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "create":
         pass
     elif cmd == "view":
@@ -80,7 +84,12 @@ def resolve_argv(cmd, args):
         return {"auth_token": args[0]}
 
     elif cmd == "list":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+        return {"auth": auth}
+
     elif cmd == "create":
         pass
     elif cmd == "view":
@@ -115,13 +124,27 @@ def request_login(args):
 
     email = result["user"]["email"]
     auth_token = result["user"]["id"]
-    data = {
-        "EMAIL": result["user"]["email"],
-        "AUTH_TOKEN": result["user"]["id"]
-    }
 
-    write_to_env(".env", data)
+    data = {
+        "EMAIL": email,
+        "AUTH_TOKEN": auth_token
+    }
+    write_to_file(".env", data, "export ")
+
     exit_with_stdout("successful login for {} with id {}".format(email, auth_token))
+
+def request_list(args):
+    result = requests.get(url + "/tost", auth=args["auth"])
+
+    data = {}
+    for k, v in result.json().iteritems():
+        data[str(k)] = str(v)
+
+    write_to_file(".temp", data)
+
+    for k, v in data.iteritems():
+        sys.stdout.write(k + ": " + v + "\n")
+    sys.exit(0)
 
 def send_request(cmd, args):
     if cmd == "signup":
@@ -129,7 +152,7 @@ def send_request(cmd, args):
     elif cmd == "login":
         request_login(args)
     elif cmd == "list":
-        pass
+        request_list(args)
     elif cmd == "create":
         pass
     elif cmd == "view":
