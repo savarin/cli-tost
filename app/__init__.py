@@ -65,7 +65,12 @@ def validate_argv(cmd, args):
         return args
 
     elif cmd == "view":
-        pass
+        if len(args) < 1:
+            exit_with_stderr("too few command line arguments!")
+        elif len(args) > 1:
+            exit_with_stderr("too many command line arguments!")
+        return args
+
     elif cmd == "edit":
         pass
     elif cmd == "access":
@@ -110,7 +115,15 @@ def resolve_argv(cmd, args):
         return {"auth": auth, "body": body}
 
     elif cmd == "view":
-        pass
+        auth = get_auth()
+
+        if not auth:
+            exit_with_stderr("invalid credentials!")
+
+        ppgn_token = args[0]
+
+        return {"auth": auth, "ppgn_token": ppgn_token}
+
     elif cmd == "edit":
         pass
     elif cmd == "access":
@@ -173,6 +186,15 @@ def request_create(args):
 
     exit_with_stdout("tost created with token {}".format(result["tost"]["access-token"]))
 
+def request_view(args):
+    result = requests.get(url + "/tost/" + args["ppgn_token"], auth=args["auth"])
+    status_code, result = result.status_code, result.json()
+
+    if status_code == 404:
+        exit_with_stdout("tost not found!")
+
+    # TO DO: test redirects
+    exit_with_stdout(result["tost"]["body"])
 
 def send_request(cmd, args):
     if cmd == "signup":
@@ -184,7 +206,7 @@ def send_request(cmd, args):
     elif cmd == "create":
         request_create(args)
     elif cmd == "view":
-        pass
+        request_view(args)
     elif cmd == "edit":
         pass
     elif cmd == "access":
