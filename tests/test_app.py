@@ -146,11 +146,13 @@ class TestCase(unittest.TestCase):
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
 
-        cmd = "./job.sh edit " + msg.split(" ")[-1] + " " + "bar"
+        cmd = "./job.sh edit " + ppgn_token_0 + " " + "bar"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("successful edit for tost with access-token", msg)
+
 
     # def test_access(self):
     #     self.auth_token_0 = self.sign_up(self.email_0)

@@ -154,7 +154,7 @@ def request_login(args):
 
 def request_index(args):
     try:
-        response = request.index(args, "tost")
+        response = request.index(args, "index")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -165,7 +165,7 @@ def request_index(args):
 
 def request_create(args):
     try:
-        response = request.create(args, "tost")
+        response = request.tost(args, "create")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -174,7 +174,7 @@ def request_create(args):
 
 def request_view(args):
     try:
-        response = request.view(args, "tost")
+        response = request.tost(args, "view")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -186,25 +186,11 @@ def request_view(args):
 
 def request_edit(args):
     try:
-        response = request.edit(args, "tost")
+        response = request.tost(args, "edit")
     except Exception as e:
         exit_with_stderr(str(e))
 
     exit_with_stdout(response["msg"])
-
-
-    # domain = base_domain + "/tost/" + args["ppgn_token"]
-    # response = requests.put(domain, auth=args["auth"], data=args["data"])
-    # status_code, response = response.status_code, response.json()
-
-    # if status_code == 404:
-    #     exit_with_stderr("tost not found!")
-
-    # if status_code == 302:
-    #     exit_with_stderr("please use refreshed access token {}"
-    #                      .format(response["access-token"]))
-
-    # exit_with_stdout("successful tost edit")
 
 
 def request_access(args):
