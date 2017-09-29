@@ -57,7 +57,7 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
 
-        cmd = "./job.sh index"
+        cmd = "./job.sh list"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("foo", msg)
@@ -67,9 +67,8 @@ class TestCase(unittest.TestCase):
 
         cmd = "./job.sh create " + "foo"
         exit_code, msg = commands.getstatusoutput(cmd)
-        print msg
         self.assertEqual(exit_code, 0)
-        self.assertIn("successful create for tost with access-token", msg)
+        self.assertIn("successful create for tost with access token", msg)
 
         cmd = "./job.sh create " + ""
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -86,7 +85,6 @@ class TestCase(unittest.TestCase):
         # case 3: user is creator of tost that propagation points to
         cmd = "./job.sh view " + msg.split(" ")[-1]
         exit_code, msg = commands.getstatusoutput(cmd)
-        print msg
         self.assertEqual(exit_code, 0)
         self.assertIn("foo", msg)
 
@@ -151,89 +149,88 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh edit " + ppgn_token_0 + " " + "bar"
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
-        self.assertIn("successful edit for tost with access-token", msg)
+        self.assertIn("successful edit for tost with access token", msg)
 
+    def test_access(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
 
-    # def test_access(self):
-    #     self.auth_token_0 = self.sign_up(self.email_0)
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
 
-    #     cmd = "./job.sh create " + "foo"
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_0 = msg.split(" ")[-1]
+        self.auth_token_1 = self.sign_up(self.email_1)
 
-    #     self.auth_token_1 = self.sign_up(self.email_1)
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
 
-    #     cmd = "./job.sh view " + ppgn_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
 
-    #     cmd = "./job.sh login " + self.auth_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
+        cmd = "./job.sh access " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn(self.email_1, msg)
 
-    #     cmd = "./job.sh access " + ppgn_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     self.assertEqual(exit_code, 0)
-    #     self.assertIn(self.email_1, msg)
+    def test_upgrade(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
 
-    # def test_upgrade(self):
-    #     self.auth_token_0 = self.sign_up(self.email_0)
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
 
-    #     cmd = "./job.sh create " + "foo"
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_0 = msg.split(" ")[-1]
+        self.auth_token_1 = self.sign_up(self.email_1)
 
-    #     self.auth_token_1 = self.sign_up(self.email_1)
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_1 = msg.split(": ")[0]
 
-    #     cmd = "./job.sh view " + ppgn_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_1 = msg.split(": ")[0]
+        self.auth_token_2 = self.sign_up(self.email_2)
 
-    #     self.auth_token_2 = self.sign_up(self.email_2)
+        cmd = "./job.sh view " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_2 = msg.split(": ")[0]
 
-    #     cmd = "./job.sh view " + ppgn_token_1
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_2 = msg.split(": ")[0]
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
 
-    #     cmd = "./job.sh login " + self.auth_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
+        cmd = "./job.sh upgrade " + ppgn_token_0 + " " + ppgn_token_2
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("successful upgrade for tost with access token", msg)
 
-    #     cmd = "./job.sh upgrade " + ppgn_token_0 + " " + ppgn_token_2
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     self.assertEqual(exit_code, 0)
-    #     self.assertIn("successful access token upgrade", msg)
+        cmd = "./job.sh login " + self.auth_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
 
-    #     cmd = "./job.sh login " + self.auth_token_1
-    #     exit_code, msg = commands.getstatusoutput(cmd)
+        cmd = "./job.sh upgrade " + ppgn_token_1 + " " + ppgn_token_2
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("destination not ancestor", msg)
 
-    #     cmd = "./job.sh upgrade " + ppgn_token_1 + " " + ppgn_token_2
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     self.assertEqual(exit_code >> 8, 1)
-    #     self.assertIn("access token is not ancestor to source!", msg)
+    def test_disable(self):
+        self.auth_token_0 = self.sign_up(self.email_0)
 
-    # def test_disable(self):
-    #     self.auth_token_0 = self.sign_up(self.email_0)
+        cmd = "./job.sh create " + "foo"
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_0 = msg.split(" ")[-1]
 
-    #     cmd = "./job.sh create " + "foo"
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_0 = msg.split(" ")[-1]
+        self.auth_token_1 = self.sign_up(self.email_1)
 
-    #     self.auth_token_1 = self.sign_up(self.email_1)
+        cmd = "./job.sh view " + ppgn_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
+        ppgn_token_1 = msg.split(": ")[0]
 
-    #     cmd = "./job.sh view " + ppgn_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     ppgn_token_1 = msg.split(": ")[0]
+        cmd = "./job.sh login " + self.auth_token_0
+        exit_code, msg = commands.getstatusoutput(cmd)
 
-    #     cmd = "./job.sh login " + self.auth_token_0
-    #     exit_code, msg = commands.getstatusoutput(cmd)
+        cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code, 0)
+        self.assertIn("successful disable for tost with access token", msg)
 
-    #     cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     self.assertEqual(exit_code, 0)
-    #     self.assertIn("successful access token disable", msg)
-
-    #     cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
-    #     exit_code, msg = commands.getstatusoutput(cmd)
-    #     self.assertEqual(exit_code >> 8, 1)
-    #     self.assertIn("source is not descendant to access token!", msg)
+        cmd = "./job.sh disable " + ppgn_token_0 + " " + ppgn_token_1
+        exit_code, msg = commands.getstatusoutput(cmd)
+        self.assertEqual(exit_code >> 8, 1)
+        self.assertIn("target not descendant of", msg)
 
     def tearDown(self):
         requests.get("http://127.0.0.1:5000/reset")

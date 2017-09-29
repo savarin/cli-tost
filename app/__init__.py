@@ -54,7 +54,7 @@ def check_args_length(args, length):
 
 def validate_argv(cmd, args):
     # TO DO: incorporate config and env
-    if cmd == "index":
+    if cmd == "list":
         return check_args_length(args, 0)
 
     elif cmd in set(["signup", "login", "create", "view", "access"]):
@@ -98,7 +98,7 @@ def resolve_argv(cmd, args):
 
         return {"auth_token": args[0]}
 
-    elif cmd == "index":
+    elif cmd == "list":
         return get_auth()
 
     elif cmd == "create":
@@ -152,20 +152,20 @@ def request_login(args):
     exit_with_stdout(response["msg"])
 
 
-def request_index(args):
+def request_list(args):
     try:
-        response = request.index(args, "index")
+        response = request.multiple(args, "list")
     except Exception as e:
         exit_with_stderr(str(e))
 
     for k, v in response["data"]["tosts"].iteritems():
-        sys.stdout.write(k[:4] + ": " + v + "\n")
+        sys.stdout.write(k + ": " + v + "\n")
     sys.exit(0)
 
 
 def request_create(args):
     try:
-        response = request.tost(args, "create")
+        response = request.individual(args, "create")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -174,7 +174,7 @@ def request_create(args):
 
 def request_view(args):
     try:
-        response = request.tost(args, "view")
+        response = request.individual(args, "view")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -186,7 +186,7 @@ def request_view(args):
 
 def request_edit(args):
     try:
-        response = request.tost(args, "edit")
+        response = request.individual(args, "edit")
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -194,35 +194,33 @@ def request_edit(args):
 
 
 def request_access(args):
-    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation"
-    response = requests.get(domain, auth=args["auth"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.access(args, "access")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    for k, v in response["propagations"].iteritems():
-        sys.stdout.write(str(k) + ": " + str(v["access-token"]) + "\n")
+    for k, v in response["data"]["propagations"].iteritems():
+        sys.stdout.write(str(v["access-token"]) + ": " + str(k) + "\n")
     sys.exit(0)
 
 
 def request_upgrade(args):
-    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation/upgrade"
-    response = requests.post(domain, auth=args["auth"], data=args["data"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.switch(args, "upgrade")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 400:
-        exit_with_stderr("access token is not ancestor to source!")
-
-    exit_with_stdout("successful access token upgrade")
+    exit_with_stdout(response["msg"])
 
 
 def request_disable(args):
-    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation/disable"
-    response = requests.post(domain, auth=args["auth"], data=args["data"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.switch(args, "disable")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 400:
-        exit_with_stderr("source is not descendant to access token!")
+    exit_with_stdout(response["msg"])
 
-    exit_with_stdout("successful access token disable")
 
 
 def send_request(cmd, args):
@@ -232,8 +230,8 @@ def send_request(cmd, args):
     elif cmd == "login":
         request_login(args)
 
-    elif cmd == "index":
-        request_index(args)
+    elif cmd == "list":
+        request_list(args)
 
     elif cmd == "create":
         request_create(args)
