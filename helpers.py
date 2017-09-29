@@ -23,7 +23,7 @@ def validate_auth_token(auth_token):
         return False
     return True
 
-def write_to_file(path, data, prefix=""):
+def write_to_file(path, data):
     with open(path, "w") as f:
         for k, v in data.iteritems():
-            f.write(prefix + '{}="{}"\n'.format(k, v))
+            f.write("export {}={}\n".format(k, v))

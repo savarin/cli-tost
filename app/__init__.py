@@ -26,11 +26,17 @@ import requests
 import sys
 import urllib
 
+
+sys.path.insert(0, "../tost-client")
+import tostclient
+
+
 from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
                     validate_auth_token, write_to_file
 
 
-domain = "http://localhost:5000"
+base_domain = "http://localhost:5000"
+request = tostclient.TostClient(base_domain)
 
 
 def parse_argv():
@@ -48,7 +54,7 @@ def check_args_length(args, length):
 
 def validate_argv(cmd, args):
     # TO DO: incorporate config and env
-    if cmd == "list":
+    if cmd == "index":
         return check_args_length(args, 0)
 
     elif cmd in set(["signup", "login", "create", "view", "access"]):
@@ -92,7 +98,7 @@ def resolve_argv(cmd, args):
 
         return {"auth_token": args[0]}
 
-    elif cmd == "list":
+    elif cmd == "index":
         return get_auth()
 
     elif cmd == "create":
@@ -102,7 +108,6 @@ def resolve_argv(cmd, args):
         return add_content(auth, data=data)
 
     elif cmd in set(["view", "access"]):
-        # TO DO: resolve to get full access token for view
         auth = get_auth()
         ppgn_token = args[0]
 
@@ -124,100 +129,87 @@ def resolve_argv(cmd, args):
 
 
 def request_signup(args):
-    url = domain + "/signup"
-    response = requests.post(url, data=args)
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.start(args, "signup")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 400:
-        exit_with_stderr("email already exists!")
-
-    email = response["user"]["email"]
-    auth_token = response["user"]["id"]
-
-    exit_with_stdout("successful signup for {} with id {}"
-                     .format(email, auth_token))
+    exit_with_stdout(response["msg"])
 
 
 def request_login(args):
-    url = domain + "/login"
-    response = requests.post(url, data=args)
-    status_code, response = response.status_code, response.json()
-
-    if status_code == 400:
-        exit_with_stderr("id incorrect!")
-
-    email = response["user"]["email"]
-    auth_token = response["user"]["id"]
+    try:
+        response = request.start(args, "login")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
     data = {
-        "EMAIL": email,
-        "AUTH_TOKEN": auth_token
+        "EMAIL": response["data"]["email"],
+        "AUTH_TOKEN": response["data"]["auth_token"]
     }
-    write_to_file(".env", data, "export ")
+    write_to_file(".env", data)
 
-    exit_with_stdout("successful login for {} with id {}"
-                     .format(email, auth_token))
+    exit_with_stdout(response["msg"])
 
 
-def request_list(args):
-    url = domain + "/tost"
-    response = requests.get(url, auth=args["auth"])
-    status_code, response = response.status_code, response.json()
+def request_index(args):
+    try:
+        response = request.index(args, "tost")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    data = {}
-    for k, v in response.iteritems():
-        data[str(k)] = str(v)
-
-    write_to_file(".temp", data)
-
-    for k, v in data.iteritems():
+    for k, v in response["data"]["tosts"].iteritems():
         sys.stdout.write(k[:4] + ": " + v + "\n")
     sys.exit(0)
 
 
 def request_create(args):
-    url = domain + "/tost"
-    response = requests.post(url, auth=args["auth"], data=args["data"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.create(args, "tost")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 400:
-        exit_with_stderr("body must not be blank!")
-
-    exit_with_stdout("tost created with token {}"
-                     .format(response["tost"]["access-token"]))
+    exit_with_stdout(response["msg"])
 
 
 def request_view(args):
-    url = domain + "/tost/" + args["ppgn_token"]
-    response = requests.get(url, auth=args["auth"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.view(args, "tost")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 404:
-        exit_with_stderr("tost not found!")
+    access_token = response["data"]["tost"]["access-token"]
+    body = response["data"]["tost"]["body"]
 
-    # TO DO: test redirects
-    exit_with_stdout(response["tost"]["access-token"] + ": " + 
-                     response["tost"]["body"])
+    exit_with_stdout(access_token + ": " + body)
 
 
 def request_edit(args):
-    url = domain + "/tost/" + args["ppgn_token"]
-    response = requests.put(url, auth=args["auth"], data=args["data"])
-    status_code, response = response.status_code, response.json()
+    try:
+        response = request.edit(args, "tost")
+    except Exception as e:
+        exit_with_stderr(str(e))
 
-    if status_code == 404:
-        exit_with_stderr("tost not found!")
+    exit_with_stdout(response["msg"])
 
-    if status_code == 302:
-        exit_with_stderr("please use refreshed access token {}"
-                         .format(response["access-token"]))
 
-    exit_with_stdout("successful tost edit")
+    # domain = base_domain + "/tost/" + args["ppgn_token"]
+    # response = requests.put(domain, auth=args["auth"], data=args["data"])
+    # status_code, response = response.status_code, response.json()
+
+    # if status_code == 404:
+    #     exit_with_stderr("tost not found!")
+
+    # if status_code == 302:
+    #     exit_with_stderr("please use refreshed access token {}"
+    #                      .format(response["access-token"]))
+
+    # exit_with_stdout("successful tost edit")
 
 
 def request_access(args):
-    url = domain + "/tost/" + args["ppgn_token"] + "/propagation"
-    response = requests.get(url, auth=args["auth"])
+    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation"
+    response = requests.get(domain, auth=args["auth"])
     status_code, response = response.status_code, response.json()
 
     for k, v in response["propagations"].iteritems():
@@ -226,8 +218,8 @@ def request_access(args):
 
 
 def request_upgrade(args):
-    url = domain + "/tost/" + args["ppgn_token"] + "/propagation/upgrade"
-    response = requests.post(url, auth=args["auth"], data=args["data"])
+    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation/upgrade"
+    response = requests.post(domain, auth=args["auth"], data=args["data"])
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
@@ -237,8 +229,8 @@ def request_upgrade(args):
 
 
 def request_disable(args):
-    url = domain + "/tost/" + args["ppgn_token"] + "/propagation/disable"
-    response = requests.post(url, auth=args["auth"], data=args["data"])
+    domain = base_domain + "/tost/" + args["ppgn_token"] + "/propagation/disable"
+    response = requests.post(domain, auth=args["auth"], data=args["data"])
     status_code, response = response.status_code, response.json()
 
     if status_code == 400:
@@ -254,8 +246,8 @@ def send_request(cmd, args):
     elif cmd == "login":
         request_login(args)
 
-    elif cmd == "list":
-        request_list(args)
+    elif cmd == "index":
+        request_index(args)
 
     elif cmd == "create":
         request_create(args)
