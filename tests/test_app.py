@@ -30,7 +30,7 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh signup " + self.email_0
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
-        self.assertIn("alice@example.com", msg)
+        self.assertIn("successful signup for alice@example.com with id", msg)
 
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code >> 8, 1)
@@ -44,7 +44,7 @@ class TestCase(unittest.TestCase):
         cmd = "./job.sh login " + self.auth_token_0
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
-        self.assertIn("alice@example.com", msg)
+        self.assertIn("successful login for alice@example.com with id", msg)
 
         cmd = "./job.sh login " + "abcd0123"
         exit_code, msg = commands.getstatusoutput(cmd)
@@ -61,6 +61,7 @@ class TestCase(unittest.TestCase):
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn("foo", msg)
+        self.assertIn("successful list request", msg)
 
     def test_create(self):
         self.auth_token_0 = self.sign_up(self.email_0)
@@ -170,6 +171,7 @@ class TestCase(unittest.TestCase):
         exit_code, msg = commands.getstatusoutput(cmd)
         self.assertEqual(exit_code, 0)
         self.assertIn(self.email_1, msg)
+        self.assertIn("successful access request", msg)
 
     def test_upgrade(self):
         self.auth_token_0 = self.sign_up(self.email_0)

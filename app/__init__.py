@@ -1,38 +1,15 @@
-'''
-commands = signup, login, list, create, view, edit, access, upgrade, disable
-
- 1. confirm argv + other input to data structure in deterministic way
-    - read in order i. config ii. env iii. argv, later overrides earlier
-    - e.g. {"cmd": ["access", "move"],
-            "args": ["7b31", ...]}
- 2. validate input, conform specifically
-    - e.g. {"cmd": "access_move",
-            "post_token": "7b31",
-            "from_email": "bob@...""}
- 3. resolve to "real" values
-    - i.e. from abbreviation into full token
-    - e.g. {"cmd": "access_move",
-            "from_token": "abc123..."
- 4. make network call
- 5. conform + validate response
- 6. format response for output
-    + exit non-zero if have error
-'''
-
-
 import json
 import os
 import requests
 import sys
 import urllib
 
-
 sys.path.insert(0, "../tost-client")
 import tostclient
 
-
-from helpers import exit_with_stderr, exit_with_stdout, validate_email, \
-                    validate_auth_token, write_to_file
+from helpers import exit_with_stderr, exit_with_stdout, \
+                    validate_email, validate_auth_token, \
+                    write_to_file
 
 
 base_domain = "http://localhost:5000"
@@ -53,7 +30,6 @@ def check_args_length(args, length):
 
 
 def validate_argv(cmd, args):
-    # TO DO: incorporate config and env
     if cmd == "list":
         return check_args_length(args, 0)
 
@@ -128,125 +104,47 @@ def resolve_argv(cmd, args):
         return add_content(auth, ppgn_token=ppgn_token, data=data)
 
 
-def request_signup(args):
+def compose_request(args, method, cmd):
     try:
-        response = request.start(args, "signup")
+        exec("response = request.{}(args, cmd)".format(method))
     except Exception as e:
         exit_with_stderr(str(e))
+
+    if cmd == "login":
+        data = {
+            "EMAIL": response["data"]["email"],
+            "AUTH_TOKEN": response["data"]["auth_token"]
+        }
+        write_to_file(".env", data)
+
+    if cmd == "list":
+        for k, v in response["data"]["tosts"].iteritems():
+            sys.stdout.write(k + ": " + v + "\n")        
+
+    if cmd == "view":
+        access_token = response["data"]["tost"]["access-token"]
+        body = response["data"]["tost"]["body"]
+        exit_with_stdout(access_token + ": " + body)
+
+    if cmd == "access":
+        for k, v in response["data"]["propagations"].iteritems():
+            sys.stdout.write(str(v["access-token"]) + ": " + str(k) + "\n")
 
     exit_with_stdout(response["msg"])
-
-
-def request_login(args):
-    try:
-        response = request.start(args, "login")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    data = {
-        "EMAIL": response["data"]["email"],
-        "AUTH_TOKEN": response["data"]["auth_token"]
-    }
-    write_to_file(".env", data)
-
-    exit_with_stdout(response["msg"])
-
-
-def request_list(args):
-    try:
-        response = request.multiple(args, "list")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    for k, v in response["data"]["tosts"].iteritems():
-        sys.stdout.write(k + ": " + v + "\n")
-    sys.exit(0)
-
-
-def request_create(args):
-    try:
-        response = request.individual(args, "create")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    exit_with_stdout(response["msg"])
-
-
-def request_view(args):
-    try:
-        response = request.individual(args, "view")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    access_token = response["data"]["tost"]["access-token"]
-    body = response["data"]["tost"]["body"]
-
-    exit_with_stdout(access_token + ": " + body)
-
-
-def request_edit(args):
-    try:
-        response = request.individual(args, "edit")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    exit_with_stdout(response["msg"])
-
-
-def request_access(args):
-    try:
-        response = request.access(args, "access")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    for k, v in response["data"]["propagations"].iteritems():
-        sys.stdout.write(str(v["access-token"]) + ": " + str(k) + "\n")
-    sys.exit(0)
-
-
-def request_upgrade(args):
-    try:
-        response = request.switch(args, "upgrade")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    exit_with_stdout(response["msg"])
-
-
-def request_disable(args):
-    try:
-        response = request.switch(args, "disable")
-    except Exception as e:
-        exit_with_stderr(str(e))
-
-    exit_with_stdout(response["msg"])
-
 
 
 def send_request(cmd, args):
-    if cmd == "signup":
-        request_signup(args)
-
-    elif cmd == "login":
-        request_login(args)
+    if cmd in set(["signup", "login"]):
+        compose_request(args, "start", cmd)
 
     elif cmd == "list":
-        request_list(args)
+        compose_request(args, "multiple", cmd)
 
-    elif cmd == "create":
-        request_create(args)
-
-    elif cmd == "view":
-        request_view(args)
-
-    elif cmd == "edit":
-        request_edit(args)
+    elif cmd in set(["create", "view", "edit"]):
+        compose_request(args, "individual", cmd)
 
     elif cmd == "access":
-        request_access(args)
+        compose_request(args, "permit", cmd)
 
-    elif cmd == "upgrade":
-        request_upgrade(args)
-
-    elif cmd == "disable":
-        request_disable(args)
+    elif cmd in set(["upgrade", "disable"]):
+        compose_request(args, "switch", cmd)
