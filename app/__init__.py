@@ -39,8 +39,7 @@ def validate_argv(cmd, args):
     elif cmd in set(["edit", "upgrade", "disable"]):
         return check_args_length(args, 2)
 
-    sys.stdout.write("invalid command\n")
-    sys.exit(1)
+    exit_with_stderr("invalid command")
 
 
 def get_auth():
@@ -64,43 +63,36 @@ def add_content(auth, ppgn_token="", data={}):
 def resolve_argv(cmd, args):
     if cmd == "signup":
         if not validate_email(args[0]):
-            exit_with_stderr("invalid e-mail!")
+            exit_with_stderr("invalid e-mail")
 
         return {"email": args[0]}
 
     elif cmd == "login":
         if not validate_auth_token(args[0]):
-            exit_with_stderr("invalid auth token!")
-
+            exit_with_stderr("invalid auth token")
+            
         return {"auth_token": args[0]}
 
-    elif cmd == "list":
-        return get_auth()
+    auth = get_auth()
+
+    if cmd == "list":
+        return auth
 
     elif cmd == "create":
-        auth = get_auth()
         data = {"body": urllib.unquote(args[0])}
-
         return add_content(auth, data=data)
 
-    elif cmd in set(["view", "access"]):
-        auth = get_auth()
-        ppgn_token = args[0]
+    ppgn_token = args[0]
 
+    if cmd in set(["view", "access"]):
         return add_content(auth, ppgn_token=ppgn_token)
 
     elif cmd == "edit":
-        auth = get_auth()
-        ppgn_token = args[0]
         data = {"body": urllib.unquote(args[1])}
-
         return add_content(auth, ppgn_token=ppgn_token, data=data)
 
     elif cmd in set(["upgrade", "disable"]):
-        auth = get_auth()
-        ppgn_token = args[0]
         data = {"src-access-token": args[1]}
-
         return add_content(auth, ppgn_token=ppgn_token, data=data)
 
 
@@ -119,7 +111,7 @@ def compose_request(args, method, cmd):
 
     if cmd == "list":
         for k, v in response["data"]["tosts"].iteritems():
-            sys.stdout.write(k + ": " + v + "\n")        
+            sys.stdout.write(k + ": " + v + "\n")
 
     if cmd == "view":
         access_token = response["data"]["tost"]["access-token"]
