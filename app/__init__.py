@@ -43,7 +43,7 @@ def validate_argv(cmd, args):
     exit_with_stderr("invalid command")
 
 
-def get_headers():
+def get_auth():
     email = os.getenv("EMAIL")
     auth_token = os.getenv("AUTH_TOKEN")
 
@@ -55,11 +55,11 @@ def get_headers():
     }
 
 
-def add_content(headers, ppgn_token="", data={}):
-    headers["ppgn_token"] = ppgn_token
-    headers["data"] = data
+def add_content(auth, ppgn_token="", data={}):
+    auth["ppgn_token"] = ppgn_token
+    auth["data"] = data
 
-    return headers
+    return auth
 
 
 def resolve_argv(cmd, args):
@@ -75,27 +75,27 @@ def resolve_argv(cmd, args):
 
         return {"auth_token": args[0]}
 
-    headers = get_headers()
+    auth = get_auth()
 
     if cmd == "list":
-        return headers
+        return auth
 
     elif cmd == "create":
         data = {"body": urllib.unquote(args[0])}
-        return add_content(headers, data=data)
+        return add_content(auth, data=data)
 
     ppgn_token = args[0]
 
     if cmd in set(["view", "access"]):
-        return add_content(headers, ppgn_token=ppgn_token)
+        return add_content(auth, ppgn_token=ppgn_token)
 
     elif cmd == "edit":
         data = {"body": urllib.unquote(args[1])}
-        return add_content(headers, ppgn_token=ppgn_token, data=data)
+        return add_content(auth, ppgn_token=ppgn_token, data=data)
 
     elif cmd in set(["upgrade", "disable"]):
         data = {"src-access-token": args[1]}
-        return add_content(headers, ppgn_token=ppgn_token, data=data)
+        return add_content(auth, ppgn_token=ppgn_token, data=data)
 
 
 def compose_request(args, method, cmd):
