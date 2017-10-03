@@ -49,8 +49,8 @@ def get_auth():
 
     return {
         "headers": {
-            "Authorization": "Basic " + base64.b64encode(email + ":" + auth_token)
-            # "Accept": "bencode"
+            "Authorization": "Basic " + base64.b64encode(email + ":" + auth_token),
+            "Accept": "bencode"
         }
     }
 
