@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import requests
@@ -13,7 +14,7 @@ from helpers import exit_with_stderr, exit_with_stdout, \
 
 
 base_domain = "http://localhost:5000"
-request = tostclient.TostClient(base_domain)
+client = tostclient.TostClient(base_domain)
 
 
 def parse_argv():
@@ -42,22 +43,23 @@ def validate_argv(cmd, args):
     exit_with_stderr("invalid command")
 
 
-def get_auth():
+def get_headers():
     email = os.getenv("EMAIL")
     auth_token = os.getenv("AUTH_TOKEN")
 
-    if not (validate_email(email) and
-            validate_auth_token(auth_token)):
-        exit_with_stderr("invalid credentials!")
+    return {
+        "headers": {
+            "Authorization": "Basic " + base64.b64encode(email + ":" + auth_token)
+            # "Accept": "bencode"
+        }
+    }
 
-    return {"auth": requests.auth.HTTPBasicAuth(email, auth_token)}
 
+def add_content(headers, ppgn_token="", data={}):
+    headers["ppgn_token"] = ppgn_token
+    headers["data"] = data
 
-def add_content(auth, ppgn_token="", data={}):
-    auth["ppgn_token"] = ppgn_token
-    auth["data"] = data
-
-    return auth
+    return headers
 
 
 def resolve_argv(cmd, args):
@@ -70,35 +72,35 @@ def resolve_argv(cmd, args):
     elif cmd == "login":
         if not validate_auth_token(args[0]):
             exit_with_stderr("invalid auth token")
-            
+
         return {"auth_token": args[0]}
 
-    auth = get_auth()
+    headers = get_headers()
 
     if cmd == "list":
-        return auth
+        return headers
 
     elif cmd == "create":
         data = {"body": urllib.unquote(args[0])}
-        return add_content(auth, data=data)
+        return add_content(headers, data=data)
 
     ppgn_token = args[0]
 
     if cmd in set(["view", "access"]):
-        return add_content(auth, ppgn_token=ppgn_token)
+        return add_content(headers, ppgn_token=ppgn_token)
 
     elif cmd == "edit":
         data = {"body": urllib.unquote(args[1])}
-        return add_content(auth, ppgn_token=ppgn_token, data=data)
+        return add_content(headers, ppgn_token=ppgn_token, data=data)
 
     elif cmd in set(["upgrade", "disable"]):
         data = {"src-access-token": args[1]}
-        return add_content(auth, ppgn_token=ppgn_token, data=data)
+        return add_content(headers, ppgn_token=ppgn_token, data=data)
 
 
 def compose_request(args, method, cmd):
     try:
-        exec("response = request.{}(args, cmd)".format(method))
+        exec("response = client.{}(args, cmd)".format(method))
     except Exception as e:
         exit_with_stderr(str(e))
 
@@ -109,18 +111,18 @@ def compose_request(args, method, cmd):
         }
         write_to_file(".env", data)
 
-    if cmd == "list":
+    elif cmd == "list":
         for k, v in response["data"]["tosts"].iteritems():
             sys.stdout.write(k + ": " + v + "\n")
 
-    if cmd == "view":
+    elif cmd == "view":
         access_token = response["data"]["tost"]["access-token"]
         body = response["data"]["tost"]["body"]
         exit_with_stdout(access_token + ": " + body)
 
-    if cmd == "access":
+    elif cmd == "access":
         for k, v in response["data"]["propagations"].iteritems():
-            sys.stdout.write(str(v["access-token"]) + ": " + str(k) + "\n")
+            sys.stdout.write(v["access-token"] + ": " + k + "\n")
 
     exit_with_stdout(response["msg"])
 
