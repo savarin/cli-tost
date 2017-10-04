@@ -12,12 +12,27 @@ from helpers import exit_with_stderr, exit_with_stdout, \
                     validate_email, validate_auth_token, \
                     write_to_file
 
+try:
+    test_debug = os.environ["TEST_DEBUG"]
+except:
+    test_debug = False
+
 
 base_domain = "http://localhost:5000"
-client = tostclient.TostClient(base_domain)
+debug_log = "TEST_DEBUG" in os.environ and os.environ["TEST_DEBUG"] == "1"
+
+client = tostclient.TostClient(base_domain, debug_log)
+
+if debug_log:
+    sys.stderr.write("CLIENT {}\n"
+                     .format(base_domain))
 
 
 def parse_argv():
+    if debug_log:
+        sys.stderr.write("ARGV {}\n"
+                         .format(" ".join(sys.argv)))
+
     cmd, args = sys.argv[1], sys.argv[2:]
     return cmd, args
 
