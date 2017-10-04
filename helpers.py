@@ -1,5 +1,6 @@
 import re
 import sys
+from uuid import uuid4
 
 
 def exit_with_stdout(comments):
@@ -30,3 +31,7 @@ def write_to_file(path, data):
     with open(path, "w") as f:
         for k, v in data.iteritems():
             f.write("export {}={}\n".format(k, v))
+
+
+def create_token(length):
+    return uuid4().hex[:length]

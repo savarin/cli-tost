@@ -10,12 +10,7 @@ import tostclient
 
 from helpers import exit_with_stderr, exit_with_stdout, \
                     validate_email, validate_auth_token, \
-                    write_to_file
-
-try:
-    test_debug = os.environ["TEST_DEBUG"]
-except:
-    test_debug = False
+                    write_to_file, create_token
 
 
 base_domain = "http://localhost:5000"
@@ -24,14 +19,12 @@ debug_log = "TEST_DEBUG" in os.environ and os.environ["TEST_DEBUG"] == "1"
 client = tostclient.TostClient(base_domain, debug_log)
 
 if debug_log:
-    sys.stderr.write("CLIENT {}\n"
-                     .format(base_domain))
+    sys.stderr.write("CLIENT {}\n".format(base_domain))
 
 
 def parse_argv():
     if debug_log:
-        sys.stderr.write("ARGV {}\n"
-                         .format(" ".join(sys.argv)))
+        sys.stderr.write("ARGV {}\n".format(" ".join(sys.argv)))
 
     cmd, args = sys.argv[1], sys.argv[2:]
     return cmd, args
@@ -82,7 +75,7 @@ def resolve_argv(cmd, args):
         if not validate_email(args[0]):
             exit_with_stderr("invalid e-mail")
 
-        return {"email": args[0]}
+        return {"email": args[0], "signup_token": create_token(8)}
 
     elif cmd == "login":
         if not validate_auth_token(args[0]):
@@ -96,7 +89,7 @@ def resolve_argv(cmd, args):
         return auth
 
     elif cmd == "create":
-        data = {"body": urllib.unquote(args[0])}
+        data = {"body": urllib.unquote(args[0]), "creation_token": create_token(8)}
         return add_content(auth, data=data)
 
     ppgn_token = args[0]
